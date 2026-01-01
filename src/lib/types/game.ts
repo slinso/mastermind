@@ -58,8 +58,8 @@ export const AVAILABLE_COLORS: Color[] = [
 	{ id: 1, name: 'Blau', hex: '#3b82f6', tailwind: 'bg-blue-500' },
 	{ id: 2, name: 'Gelb', hex: '#eab308', tailwind: 'bg-yellow-500' },
 	{ id: 3, name: 'Grün', hex: '#22c55e', tailwind: 'bg-green-500' },
-	{ id: 4, name: 'Orange', hex: '#f97316', tailwind: 'bg-orange-500' },
-	{ id: 5, name: 'Lila', hex: '#a855f7', tailwind: 'bg-purple-500' },
+	{ id: 4, name: 'Schwarz', hex: '#1f2937', tailwind: 'bg-gray-800' },
+	{ id: 5, name: 'Weiß', hex: '#f9fafb', tailwind: 'bg-gray-50 border-gray-300' },
 	{ id: 6, name: 'Pink', hex: '#ec4899', tailwind: 'bg-pink-500' },
 	{ id: 7, name: 'Türkis', hex: '#14b8a6', tailwind: 'bg-teal-500' }
 ];
