@@ -22,12 +22,16 @@ export interface Guess {
 	isComplete: boolean;
 }
 
+/** Layout-Orientierung */
+export type LayoutOrientation = 'vertical' | 'horizontal';
+
 /** Spielkonfiguration */
 export interface GameConfig {
 	positions: number; // 3-6, Standard: 4
 	colorCount: number; // 4-8, Standard: 6
 	maxAttempts: number; // Standard: 10
 	allowDuplicates: boolean; // Farbwiederholung erlaubt?
+	layout: LayoutOrientation; // Layout-Orientierung
 }
 
 /** Spielstatus */
@@ -49,7 +53,8 @@ export const DEFAULT_CONFIG: GameConfig = {
 	positions: 4,
 	colorCount: 6,
 	maxAttempts: 10,
-	allowDuplicates: true
+	allowDuplicates: true,
+	layout: 'vertical'
 };
 
 /** Verfügbare Farben (8 Stück) */

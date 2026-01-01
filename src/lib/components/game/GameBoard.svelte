@@ -15,6 +15,9 @@
 	let showSettings = $state(false);
 	let showGameOver = $state(false);
 
+	// Layout
+	const isHorizontal = $derived(gameStore.config.layout === 'horizontal');
+
 	// Game Over Modal bei Spielende anzeigen
 	$effect(() => {
 		if (gameStore.isGameOver) {
@@ -84,12 +87,13 @@
 	});
 </script>
 
-<div class="flex flex-col gap-6 max-w-md mx-auto p-4">
+<div class="flex flex-col gap-4 p-4" class:max-w-md={!isHorizontal} class:mx-auto={!isHorizontal}>
 	<!-- Header mit Einstellungen -->
 	<div class="flex justify-between items-center">
 		<div class="text-sm text-gray-500">
 			{gameStore.config.positions} Positionen | {gameStore.config.colorCount} Farben |
-			{gameStore.config.allowDuplicates ? 'Mit' : 'Ohne'} Wiederholung
+			{gameStore.config.allowDuplicates ? 'Mit' : 'Ohne'} Wiederholung |
+			{isHorizontal ? 'Horizontal' : 'Vertikal'}
 		</div>
 		<button
 			type="button"
@@ -114,9 +118,6 @@
 		</button>
 	</div>
 
-	<!-- Geheimcode -->
-	<SecretCode code={gameStore.secretCode} revealed={gameStore.isGameOver} />
-
 	<!-- Spielstatus -->
 	{#if !gameStore.isGameOver}
 		<div class="text-center text-gray-600">
@@ -124,17 +125,41 @@
 		</div>
 	{/if}
 
-	<!-- Spielfeld mit Versuchen -->
-	<div class="flex flex-col gap-2">
-		{#each gameStore.guesses as guess, index (index)}
-			<GuessRow
-				{guess}
-				rowIndex={index}
-				isActive={index === gameStore.currentGuessIndex && !gameStore.isGameOver}
-				onPegClick={handlePegClick}
-			/>
-		{/each}
-	</div>
+	{#if isHorizontal}
+		<!-- HORIZONTALES LAYOUT -->
+		<div class="flex gap-2 items-start overflow-x-auto pb-2">
+			<!-- Spielfeld mit Versuchen (horizontal) -->
+			{#each gameStore.guesses as guess, index (index)}
+				<GuessRow
+					{guess}
+					rowIndex={index}
+					isActive={index === gameStore.currentGuessIndex && !gameStore.isGameOver}
+					layout="horizontal"
+					onPegClick={handlePegClick}
+				/>
+			{/each}
+
+			<!-- Geheimcode (am Ende) -->
+			<SecretCode code={gameStore.secretCode} revealed={gameStore.isGameOver} layout="horizontal" />
+		</div>
+	{:else}
+		<!-- VERTIKALES LAYOUT -->
+		<!-- Geheimcode -->
+		<SecretCode code={gameStore.secretCode} revealed={gameStore.isGameOver} layout="vertical" />
+
+		<!-- Spielfeld mit Versuchen -->
+		<div class="flex flex-col gap-2">
+			{#each gameStore.guesses as guess, index (index)}
+				<GuessRow
+					{guess}
+					rowIndex={index}
+					isActive={index === gameStore.currentGuessIndex && !gameStore.isGameOver}
+					layout="vertical"
+					onPegClick={handlePegClick}
+				/>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Farbauswahl (nur wenn Spiel läuft) -->
 	{#if !gameStore.isGameOver}

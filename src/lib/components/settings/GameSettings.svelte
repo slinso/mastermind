@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GameConfig } from '$lib/types/game';
+	import type { GameConfig, LayoutOrientation } from '$lib/types/game';
 	import { DEFAULT_CONFIG } from '$lib/types/game';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -19,6 +19,7 @@
 	let colorCount = $state(DEFAULT_CONFIG.colorCount);
 	let maxAttempts = $state(DEFAULT_CONFIG.maxAttempts);
 	let allowDuplicates = $state(DEFAULT_CONFIG.allowDuplicates);
+	let layout = $state<LayoutOrientation>(DEFAULT_CONFIG.layout);
 
 	// Bei Öffnen des Modals die aktuellen Werte laden
 	$effect(() => {
@@ -27,6 +28,7 @@
 			colorCount = currentConfig.colorCount;
 			maxAttempts = currentConfig.maxAttempts;
 			allowDuplicates = currentConfig.allowDuplicates;
+			layout = currentConfig.layout;
 		}
 	});
 
@@ -40,7 +42,8 @@
 			positions,
 			colorCount,
 			maxAttempts,
-			allowDuplicates
+			allowDuplicates,
+			layout
 		});
 		onclose();
 	}
@@ -50,6 +53,7 @@
 		colorCount = DEFAULT_CONFIG.colorCount;
 		maxAttempts = DEFAULT_CONFIG.maxAttempts;
 		allowDuplicates = DEFAULT_CONFIG.allowDuplicates;
+		layout = DEFAULT_CONFIG.layout;
 	}
 </script>
 
@@ -94,6 +98,44 @@
 		<p class="text-xs text-gray-500 -mt-4">
 			Wenn aktiviert, kann eine Farbe mehrfach im Code vorkommen.
 		</p>
+
+		<!-- Layout -->
+		<div>
+			<label class="text-sm font-medium text-gray-700 block mb-2">Layout</label>
+			<div class="flex gap-2">
+				<button
+					type="button"
+					class="flex-1 px-3 py-2 rounded-lg border-2 transition-colors {layout === 'vertical'
+						? 'border-blue-500 bg-blue-50 text-blue-700'
+						: 'border-gray-200 hover:border-gray-300'}"
+					onclick={() => (layout = 'vertical')}
+				>
+					<div class="flex flex-col items-center gap-1">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+						</svg>
+						<span class="text-xs">Vertikal</span>
+					</div>
+				</button>
+				<button
+					type="button"
+					class="flex-1 px-3 py-2 rounded-lg border-2 transition-colors {layout === 'horizontal'
+						? 'border-blue-500 bg-blue-50 text-blue-700'
+						: 'border-gray-200 hover:border-gray-300'}"
+					onclick={() => (layout = 'horizontal')}
+				>
+					<div class="flex flex-col items-center gap-1">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" transform="rotate(90 12 12)"></path>
+						</svg>
+						<span class="text-xs">Horizontal</span>
+					</div>
+				</button>
+			</div>
+			<p class="mt-1 text-xs text-gray-500">
+				Horizontal ist besser für Widescreen-Monitore bei vielen Versuchen.
+			</p>
+		</div>
 
 		<!-- Validierungsfehler -->
 		{#if !isValid}
