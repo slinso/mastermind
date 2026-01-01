@@ -2,8 +2,42 @@
 	import { gameStore } from '$lib/stores/game.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import {
+		type Difficulty,
+		DIFFICULTIES,
+		calculateDifficulty,
+		getDifficultyInfo
+	} from '$lib/types/game';
 
 	let showConfirmReset = $state(false);
+	let selectedDifficulty = $state<Difficulty | 'all'>('all');
+
+	// Gefilterte History nach Schwierigkeitsgrad
+	const filteredHistory = $derived(
+		selectedDifficulty === 'all'
+			? gameStore.stats.history
+			: gameStore.stats.history.filter(
+					(game) => calculateDifficulty(game.config) === selectedDifficulty
+				)
+	);
+
+	// Statistiken für aktuellen Filter berechnen
+	const filteredStats = $derived.by(() => {
+		const games = filteredHistory;
+		const won = games.filter((g) => g.won);
+		const lost = games.filter((g) => !g.won);
+
+		return {
+			gamesPlayed: games.length,
+			gamesWon: won.length,
+			gamesLost: lost.length,
+			winRate: games.length > 0 ? Math.round((won.length / games.length) * 100) : 0,
+			totalAttempts: won.reduce((sum, g) => sum + g.attempts, 0),
+			averageAttempts: won.length > 0 ? Math.round((won.reduce((sum, g) => sum + g.attempts, 0) / won.length) * 10) / 10 : 0,
+			bestAttempts: won.length > 0 ? Math.min(...won.map((g) => g.attempts)) : null,
+			totalPlayTime: games.reduce((sum, g) => sum + g.duration, 0)
+		};
+	});
 
 	function formatDuration(seconds: number): string {
 		if (seconds < 60) {
@@ -55,25 +89,49 @@
 			</a>
 		</div>
 
+		<!-- Schwierigkeitsgrad-Filter -->
+		<div class="flex flex-wrap gap-2 mb-6">
+			<button
+				type="button"
+				class="px-4 py-2 rounded-lg font-medium transition-colors {selectedDifficulty === 'all'
+					? 'bg-gray-800 text-white'
+					: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+				onclick={() => (selectedDifficulty = 'all')}
+			>
+				Alle
+			</button>
+			{#each DIFFICULTIES as diff (diff.id)}
+				<button
+					type="button"
+					class="px-4 py-2 rounded-lg font-medium transition-colors {selectedDifficulty === diff.id
+						? diff.color
+						: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+					onclick={() => (selectedDifficulty = diff.id)}
+				>
+					{diff.name}
+				</button>
+			{/each}
+		</div>
+
 		<!-- Übersicht -->
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
 			<div class="bg-white rounded-xl p-4 shadow-sm text-center">
-				<div class="text-3xl font-bold text-gray-800">{gameStore.stats.gamesPlayed}</div>
+				<div class="text-3xl font-bold text-gray-800">{filteredStats.gamesPlayed}</div>
 				<div class="text-sm text-gray-500">Spiele</div>
 			</div>
 			<div class="bg-white rounded-xl p-4 shadow-sm text-center">
-				<div class="text-3xl font-bold text-green-600">{gameStore.winRate}%</div>
+				<div class="text-3xl font-bold text-green-600">{filteredStats.winRate}%</div>
 				<div class="text-sm text-gray-500">Gewonnen</div>
 			</div>
 			<div class="bg-white rounded-xl p-4 shadow-sm text-center">
 				<div class="text-3xl font-bold text-blue-600">
-					{gameStore.stats.bestAttempts ?? '-'}
+					{filteredStats.bestAttempts ?? '-'}
 				</div>
 				<div class="text-sm text-gray-500">Beste Runde</div>
 			</div>
 			<div class="bg-white rounded-xl p-4 shadow-sm text-center">
 				<div class="text-3xl font-bold text-purple-600">
-					{gameStore.averageAttempts || '-'}
+					{filteredStats.averageAttempts || '-'}
 				</div>
 				<div class="text-sm text-gray-500">Ø Versuche</div>
 			</div>
@@ -85,21 +143,21 @@
 			<div class="grid grid-cols-2 gap-4 text-sm">
 				<div class="flex justify-between">
 					<span class="text-gray-500">Gewonnen:</span>
-					<span class="font-medium text-green-600">{gameStore.stats.gamesWon}</span>
+					<span class="font-medium text-green-600">{filteredStats.gamesWon}</span>
 				</div>
 				<div class="flex justify-between">
 					<span class="text-gray-500">Verloren:</span>
-					<span class="font-medium text-red-600">{gameStore.stats.gamesLost}</span>
+					<span class="font-medium text-red-600">{filteredStats.gamesLost}</span>
 				</div>
 				<div class="flex justify-between">
 					<span class="text-gray-500">Gesamtspielzeit:</span>
-					<span class="font-medium">{formatDuration(gameStore.stats.totalPlayTime)}</span>
+					<span class="font-medium">{formatDuration(filteredStats.totalPlayTime)}</span>
 				</div>
 				<div class="flex justify-between">
 					<span class="text-gray-500">Ø Spielzeit:</span>
 					<span class="font-medium">
-						{gameStore.stats.gamesPlayed > 0
-							? formatDuration(Math.round(gameStore.stats.totalPlayTime / gameStore.stats.gamesPlayed))
+						{filteredStats.gamesPlayed > 0
+							? formatDuration(Math.round(filteredStats.totalPlayTime / filteredStats.gamesPlayed))
 							: '-'}
 					</span>
 				</div>
@@ -108,15 +166,27 @@
 
 		<!-- Spielverlauf -->
 		<div class="bg-white rounded-xl p-6 shadow-sm mb-8">
-			<h2 class="text-xl font-semibold text-gray-800 mb-4">Letzte Spiele</h2>
+			<h2 class="text-xl font-semibold text-gray-800 mb-4">
+				Letzte Spiele
+				{#if selectedDifficulty !== 'all'}
+					<span class="text-sm font-normal text-gray-500">
+						({getDifficultyInfo(selectedDifficulty).name})
+					</span>
+				{/if}
+			</h2>
 
-			{#if gameStore.stats.history.length === 0}
+			{#if filteredHistory.length === 0}
 				<p class="text-gray-500 text-center py-8">
-					Noch keine Spiele gespielt. Starte ein Spiel, um Statistiken zu sammeln!
+					{#if selectedDifficulty === 'all'}
+						Noch keine Spiele gespielt. Starte ein Spiel, um Statistiken zu sammeln!
+					{:else}
+						Keine Spiele in dieser Schwierigkeitsstufe.
+					{/if}
 				</p>
 			{:else}
 				<div class="space-y-2 max-h-96 overflow-y-auto">
-					{#each gameStore.stats.history as game (game.id)}
+					{#each filteredHistory as game (game.id)}
+						{@const difficulty = getDifficultyInfo(calculateDifficulty(game.config))}
 						<div
 							class="flex items-center justify-between p-3 rounded-lg"
 							class:bg-green-50={game.won}
@@ -125,8 +195,13 @@
 							<div class="flex items-center gap-3">
 								<span class="text-xl">{game.won ? '🎉' : '😔'}</span>
 								<div>
-									<div class="font-medium text-gray-800">
-										{game.won ? 'Gewonnen' : 'Verloren'} in {game.attempts} Versuchen
+									<div class="flex items-center gap-2">
+										<span class="font-medium text-gray-800">
+											{game.won ? 'Gewonnen' : 'Verloren'} in {game.attempts} Versuchen
+										</span>
+										<span class="text-xs px-2 py-0.5 rounded {difficulty.color}">
+											{difficulty.name}
+										</span>
 									</div>
 									<div class="text-xs text-gray-500">
 										{game.config.positions} Pos. | {game.config.colorCount} Farben |

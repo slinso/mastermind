@@ -100,3 +100,55 @@ export const DEFAULT_STATS: GameStats = {
 	totalPlayTime: 0,
 	history: []
 };
+
+/** Schwierigkeitsgrad */
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+/** Schwierigkeitsgrad-Definition */
+export interface DifficultyInfo {
+	id: Difficulty;
+	name: string;
+	description: string;
+	color: string;
+}
+
+/** Verfügbare Schwierigkeitsgrade */
+export const DIFFICULTIES: DifficultyInfo[] = [
+	{ id: 'easy', name: 'Leicht', description: '3-4 Pos., viele Farben, Wdh.', color: 'text-green-600 bg-green-100' },
+	{ id: 'medium', name: 'Mittel', description: '4-5 Pos., ausgewogen', color: 'text-yellow-600 bg-yellow-100' },
+	{ id: 'hard', name: 'Schwer', description: '5-6 Pos., wenige Farben, ohne Wdh.', color: 'text-red-600 bg-red-100' }
+];
+
+/**
+ * Berechnet den Schwierigkeitsgrad basierend auf der Konfiguration.
+ * Faktoren: Positionen, Verhältnis Farben zu Positionen, Wiederholung
+ */
+export function calculateDifficulty(config: GameConfig): Difficulty {
+	let score = 0;
+
+	// Positionen (mehr = schwerer)
+	if (config.positions >= 6) score += 3;
+	else if (config.positions >= 5) score += 2;
+	else if (config.positions >= 4) score += 1;
+
+	// Verhältnis Farben zu Positionen (weniger Farben relativ = schwerer)
+	const ratio = config.colorCount / config.positions;
+	if (ratio <= 1.25) score += 3; // Sehr wenige Farben
+	else if (ratio <= 1.5) score += 2;
+	else if (ratio <= 2) score += 1;
+
+	// Keine Wiederholung = schwerer
+	if (!config.allowDuplicates) score += 2;
+
+	// Score zu Difficulty
+	if (score >= 6) return 'hard';
+	if (score >= 3) return 'medium';
+	return 'easy';
+}
+
+/**
+ * Gibt die DifficultyInfo für einen Schwierigkeitsgrad zurück.
+ */
+export function getDifficultyInfo(difficulty: Difficulty): DifficultyInfo {
+	return DIFFICULTIES.find((d) => d.id === difficulty) ?? DIFFICULTIES[0];
+}

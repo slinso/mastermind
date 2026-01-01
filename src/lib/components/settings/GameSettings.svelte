@@ -67,7 +67,7 @@
 
 		<!-- Farben -->
 		<div>
-			<NumberInput bind:value={colorCount} min={4} max={8} label="Anzahl Farben" id="colorCount" />
+			<NumberInput bind:value={colorCount} min={3} max={8} label="Anzahl Farben" id="colorCount" />
 			<p class="mt-1 text-xs text-gray-500">Wie viele verschiedene Farben stehen zur Auswahl?</p>
 		</div>
 
