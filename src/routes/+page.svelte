@@ -11,6 +11,12 @@
 		<header class="text-center mb-8">
 			<h1 class="text-4xl font-bold text-gray-800 mb-2">Mastermind</h1>
 			<p class="text-gray-600">Knacke den geheimen Farbcode!</p>
+			<a
+				href="/stats"
+				class="inline-block mt-2 text-blue-500 hover:text-blue-700 text-sm underline"
+			>
+				Statistiken anzeigen
+			</a>
 		</header>
 
 		<GameBoard />

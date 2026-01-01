@@ -68,3 +68,35 @@ export const AVAILABLE_COLORS: Color[] = [
 	{ id: 6, name: 'Pink', hex: '#ec4899', tailwind: 'bg-pink-500' },
 	{ id: 7, name: 'Türkis', hex: '#14b8a6', tailwind: 'bg-teal-500' }
 ];
+
+/** Einzelner Spielverlauf für Statistik */
+export interface GameHistoryEntry {
+	id: string; // Eindeutige ID
+	date: number; // Timestamp
+	config: GameConfig;
+	attempts: number; // Anzahl der Versuche
+	won: boolean;
+	duration: number; // in Sekunden
+}
+
+/** Aggregierte Statistiken */
+export interface GameStats {
+	gamesPlayed: number;
+	gamesWon: number;
+	gamesLost: number;
+	totalAttempts: number; // Summe aller Versuche (für Durchschnitt)
+	bestAttempts: number | null; // Beste Runde (wenigste Versuche bei Gewinn)
+	totalPlayTime: number; // in Sekunden
+	history: GameHistoryEntry[];
+}
+
+/** Standard-Statistiken */
+export const DEFAULT_STATS: GameStats = {
+	gamesPlayed: 0,
+	gamesWon: 0,
+	gamesLost: 0,
+	totalAttempts: 0,
+	bestAttempts: null,
+	totalPlayTime: 0,
+	history: []
+};

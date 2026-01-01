@@ -1,7 +1,9 @@
-import type { GameConfig, ColorId, Guess, Feedback, GameStatus } from '$lib/types/game';
-import { DEFAULT_CONFIG } from '$lib/types/game';
+import type { GameConfig, ColorId, Guess, GameStatus, GameStats, GameHistoryEntry } from '$lib/types/game';
+import { DEFAULT_CONFIG, DEFAULT_STATS } from '$lib/types/game';
 import { generateSecretCode } from '$lib/utils/code-generator';
 import { calculateFeedback } from '$lib/utils/feedback-calculator';
+import { saveConfig, loadConfig, saveStats, loadStats, resetStats, generateId } from '$lib/utils/storage';
+import { browser } from '$app/environment';
 
 /**
  * Erstellt einen leeren Rateversuch.
@@ -23,16 +25,23 @@ function createEmptyGuesses(config: GameConfig): Guess[] {
 
 /**
  * Reaktiver Game Store mit Svelte 5 Runes.
- * Verwaltet den kompletten Spielzustand.
+ * Verwaltet den kompletten Spielzustand und Statistiken.
  */
 function createGameStore() {
-	let config = $state<GameConfig>({ ...DEFAULT_CONFIG });
+	// Konfiguration aus localStorage laden (nur im Browser)
+	const initialConfig = browser ? loadConfig() : { ...DEFAULT_CONFIG };
+	const initialStats = browser ? loadStats() : { ...DEFAULT_STATS, history: [] };
+
+	let config = $state<GameConfig>(initialConfig);
 	let secretCode = $state<ColorId[]>([]);
 	let guesses = $state<Guess[]>([]);
 	let currentGuessIndex = $state(0);
 	let status = $state<GameStatus>('playing');
 	let startTime = $state(0);
 	let endTime = $state<number | null>(null);
+
+	// Statistiken
+	let stats = $state<GameStats>(initialStats);
 
 	// Abgeleitete Werte
 	const currentGuess = $derived(guesses[currentGuessIndex]);
@@ -42,12 +51,70 @@ function createGameStore() {
 	const attemptsRemaining = $derived(config.maxAttempts - currentGuessIndex);
 	const isGameOver = $derived(status !== 'playing');
 
+	// Abgeleitete Statistik-Werte
+	const winRate = $derived(
+		stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0
+	);
+	const averageAttempts = $derived(
+		stats.gamesWon > 0 ? Math.round((stats.totalAttempts / stats.gamesWon) * 10) / 10 : 0
+	);
+
+	/**
+	 * Speichert die aktuelle Konfiguration.
+	 */
+	function persistConfig() {
+		if (browser) {
+			saveConfig(config);
+		}
+	}
+
+	/**
+	 * Speichert die aktuellen Statistiken.
+	 */
+	function persistStats() {
+		if (browser) {
+			saveStats(stats);
+		}
+	}
+
+	/**
+	 * Aktualisiert die Statistiken nach einem Spielende.
+	 */
+	function updateStats(won: boolean, attempts: number, duration: number) {
+		const historyEntry: GameHistoryEntry = {
+			id: generateId(),
+			date: Date.now(),
+			config: { ...config },
+			attempts,
+			won,
+			duration
+		};
+
+		stats.gamesPlayed++;
+		stats.totalPlayTime += duration;
+		stats.history = [historyEntry, ...stats.history].slice(0, 50); // Max 50 Einträge
+
+		if (won) {
+			stats.gamesWon++;
+			stats.totalAttempts += attempts;
+
+			if (stats.bestAttempts === null || attempts < stats.bestAttempts) {
+				stats.bestAttempts = attempts;
+			}
+		} else {
+			stats.gamesLost++;
+		}
+
+		persistStats();
+	}
+
 	/**
 	 * Startet ein neues Spiel mit optionaler Konfiguration.
 	 */
 	function startNewGame(newConfig?: Partial<GameConfig>) {
 		if (newConfig) {
 			config = { ...config, ...newConfig };
+			persistConfig();
 		}
 		secretCode = generateSecretCode(config);
 		guesses = createEmptyGuesses(config);
@@ -102,6 +169,8 @@ function createGameStore() {
 		if (feedback.black === config.positions) {
 			status = 'won';
 			endTime = Date.now();
+			const duration = Math.round((endTime - startTime) / 1000);
+			updateStats(true, currentGuessIndex + 1, duration);
 			return;
 		}
 
@@ -109,11 +178,21 @@ function createGameStore() {
 		if (currentGuessIndex >= config.maxAttempts - 1) {
 			status = 'lost';
 			endTime = Date.now();
+			const duration = Math.round((endTime - startTime) / 1000);
+			updateStats(false, config.maxAttempts, duration);
 			return;
 		}
 
 		// Nächster Versuch
 		currentGuessIndex++;
+	}
+
+	/**
+	 * Setzt die Statistiken zurück.
+	 */
+	function clearStats() {
+		stats = { ...DEFAULT_STATS, history: [] };
+		resetStats();
 	}
 
 	// Initialisiere das erste Spiel
@@ -155,12 +234,24 @@ function createGameStore() {
 			return isGameOver;
 		},
 
+		// Statistik-Getter
+		get stats() {
+			return stats;
+		},
+		get winRate() {
+			return winRate;
+		},
+		get averageAttempts() {
+			return averageAttempts;
+		},
+
 		// Methoden
 		startNewGame,
 		setColor,
 		clearColor,
 		resetCurrentGuess,
-		submitGuess
+		submitGuess,
+		clearStats
 	};
 }
 
